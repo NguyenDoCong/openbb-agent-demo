@@ -38,7 +38,11 @@ These are the guidelines to consider when completing your task:
 * Only use keyword searches
 * Make multiple searches with different terms
 * You can return up to a maximum of 4 tools
-* Nếu "google_search" xuất hiện trong danh sách các tool tìm được, LUÔN LUÔN thêm "google_search" vào danh sách trả về, kể cả khi các tool khác đã đủ.* Pay close attention to the data that available for each tool, and if it can answer the user's question
+* QUAN TRỌNG: Nếu "google_search" có sẵn trong vector store, LUÔN LUÔN bao gồm "google_search" trong danh sách tool trả về.
+* Nếu "google_search" xuất hiện trong danh sách các tool trả về, LUÔN LUÔN gọi "google_search" TRƯỚC HẾT để tìm kiếm thông tin cho câu hỏi phụ.
+* google_search có thể cung cấp thông tin cập nhật và đa dạng cho hầu hết các câu hỏi.
+* LUÔN LUÔN ưu tiên chọn "google_search" nếu nó có thể cung cấp thông tin liên quan đến câu hỏi phụ, ngay cả khi có các công cụ chuyên biệt khác.
+* Pay close attention to the data that available for each tool, and if it can answer the user's question
 * Return 0 tools if tools are NOT required to answer the user's question given the information contained in the context.
 
 YOU ARE ALLOWED TO MAKE MULTIPLE QUERIES IF YOUR FIRST RESULT DOES NOT YIELD THE APPROPRIATE TOOL.
@@ -66,7 +70,7 @@ Good: "price crypto"
 
 ## Example response
 ```json
-[".equity.price.historical", ".equity.fundamentals.overview", ".equity.fundamentals.ratios"]
+["google_search", ".equity.price.historical", ".equity.fundamentals.overview", ".equity.fundamentals.ratios"]
 ```
 
 ## Previously-answered subquestions
@@ -141,6 +145,10 @@ The current datetime is: {current_datetime}
 IMPORTANT: If a user asks for the current or latest piece of information,
 look-up the most recent data possible, instead of using your internal knowledge.
 
+QUAN TRỌNG: Nếu có google_search trong danh sách tools, hãy ưu tiên sử dụng google_search để tìm kiếm thông tin mới nhất và đa dạng nhất. 
+QUAN TRỌNG: Trong mọi trường hợp có thể, hãy sử dụng google_search trước khi xem xét bất kỳ công cụ nào khác để trả lời câu hỏi phụ.
+QUAN TRỌNG: LUÔN LUÔN ưu tiên sử dụng google_search để tìm kiếm thông tin mới nhất và đa dạng nhất cho mọi câu hỏi phụ. Chỉ sử dụng các công cụ khác khi google_search không thể cung cấp câu trả lời
+
 Give your answer in a bullet-point list.
 Explain your reasoning, and make specific reference to the retrieved data.
 Provide the relevant retrieved data as part of your answer.
@@ -148,7 +156,8 @@ Deliberately prefer information retreived from the tools, rather than your inter
 Retrieve *only the data necessary* using tools to answer the question.
 Remember to mention any related datetime-related information in your answer (eg. if there is a date assosciated with the retreived data)
 
-Remember to use the tools provided to you to answer the question.
+Remember to use the tools provided to you to answer the question. 
+IMPORTANT: always prioritize using the google_search tool to answer the question, if it is available.
 
 Example output format:
 ```
@@ -179,6 +188,7 @@ If necessary, make use of the following subquestions and their answers to answer
 - Pay attention to default values and literal values.
 - Always specify arguments in the correct order.
 - Never exclude required arguments.
+- Nếu có google_search, hãy sử dụng nó để tìm kiếm thông tin cập nhật và bổ sung.
 
 Considering this high-level question purely as context: {user_query}
 

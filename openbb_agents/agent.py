@@ -251,13 +251,13 @@ def _fetch_tools_and_answer_subquestion(
         )
         
         if not google_search_already_in_tools:
-            tools.append(google_search_callable)
+            tools.insert(0, google_search_callable)
             logger.info("Force added google_search to tools list")
         else:
             logger.info("google_search already in tools list")
     else:
         logger.info("google_search not found in vector store")
-        
+
     tool_names = [tool.__name__ for tool in tools]
     logger.info("Retrieved tool(s): %s", tool_names)
 
