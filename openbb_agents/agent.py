@@ -4,7 +4,7 @@ from typing import Callable
 
 from langchain.vectorstores import VectorStore
 
-from .chains import (
+from .chains_gemini import (
     agenerate_subquestion_answer,
     agenerate_subquestions_from_query,
     asearch_tools,
@@ -24,7 +24,6 @@ from .tools import (
 from .utils import configure_logging, get_dependencies
 
 logger = logging.getLogger(__name__)
-
 
 def openbb_agent(
     query: str,
@@ -63,11 +62,15 @@ def openbb_agent(
     """
     configure_logging(verbose)
     if openbb_pat:
+        # print("Using OpenBB PAT for authentication.", openbb_pat)
+
         from openbb import obb
 
         obb.account.login(pat=openbb_pat)
+        # obb.account.login(email='tuoithodudoi.phungquan@gmail.com', password='One@3456', pat=openbb_pat)
 
     tool_vector_index = _handle_tool_vector_index(openbb_tools)
+
     if extra_tools:
         tool_vector_index = append_tools_to_vector_index(
             vector_store=tool_vector_index,
@@ -76,6 +79,7 @@ def openbb_agent(
 
     logger.info("Generating subquestions for user query: %s", query)
     subquestions = generate_subquestions_from_query(user_query=query)
+    print("subquestions:", subquestions)
     logger.info("Generated subquestions: %s", subquestions)
 
     answered_subquestions = []
@@ -223,6 +227,37 @@ def _fetch_tools_and_answer_subquestion(
         tool_vector_index=tool_vector_index,
         answered_subquestions=dependencies,
     )
+
+        # Check if google_search exists in vector store and force add it
+    google_search_exists = False
+    google_search_callable = None
+    # Check if google_search is in vector store
+    for doc in tool_vector_index.docstore._dict.values():  # type: ignore
+        try:
+            if doc.metadata.get("tool_name") == "google_search":
+                google_search_exists = True
+                google_search_callable = doc.metadata["callable"]
+                logger.info("Found google_search in vector store")
+                break
+        except Exception as e:
+            logger.error(f"Error accessing metadata for google_search check: {e}")
+            continue
+    
+    # Force add google_search if it exists and not already in tools
+    if google_search_exists and google_search_callable:
+        # Check if google_search is already in tools
+        google_search_already_in_tools = any(
+            tool.__name__ == "google_search" for tool in tools
+        )
+        
+        if not google_search_already_in_tools:
+            tools.append(google_search_callable)
+            logger.info("Force added google_search to tools list")
+        else:
+            logger.info("google_search already in tools list")
+    else:
+        logger.info("google_search not found in vector store")
+        
     tool_names = [tool.__name__ for tool in tools]
     logger.info("Retrieved tool(s): %s", tool_names)
 
@@ -326,5 +361,17 @@ def _handle_tool_vector_index(openbb_tools: list[str] | None) -> VectorStore:
         ]
         tool_vector_index = build_vector_index_from_openbb_function_descriptions(
             openbb_function_descriptions
+        )
+        logger.info(
+            "Built tool vector index with OpenBB tools: %s",
+            [tool for tool in tool_vector_index.docstore._dict.values()],
+        )
+        if not tool_vector_index:
+            logger.error("Failed to build tool vector index.")
+            raise ValueError("Tool vector index could not be built.")
+        logger.info("Tool vector index built successfully.")
+        logger.info(
+            "Tool vector index contains %d tools.",
+            len(tool_vector_index.docstore._dict),
         )
     return tool_vector_index

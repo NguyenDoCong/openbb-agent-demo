@@ -32,7 +32,7 @@ logging_config = {
             "level": "ERROR",
             "propagate": False,
         },
-        "openbb_agents.chains": {
+        "openbb_agents.chains_gemini": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,

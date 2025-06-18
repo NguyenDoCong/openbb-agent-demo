@@ -4,7 +4,7 @@ import pytest
 from openbb import obb
 from pydantic import BaseModel
 
-from openbb_agents.chains import (
+from openbb_agents.chains_gemini import (
     agenerate_final_answer,
     agenerate_subquestion_answer,
     agenerate_subquestions_from_query,

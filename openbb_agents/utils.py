@@ -41,7 +41,7 @@ def configure_logging(verbose: bool):
                 "level": "INFO" if verbose else "CRITICAL",
                 "propagate": False,
             },
-            "openbb_agents.chains": {
+            "openbb_agents.chains_gemini": {
                 "handlers": ["console"],
                 "level": "INFO" if verbose else "CRITICAL",
                 "propagate": False,

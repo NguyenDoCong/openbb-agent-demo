@@ -1,4 +1,6 @@
 FINAL_RESPONSE_PROMPT_TEMPLATE = """\
+Hãy trả lời bằng tiếng Việt.
+
 Given the following high-level question:
 
 {user_query}
@@ -12,6 +14,8 @@ Answer the high-level question. Give your answer in a bulleted list.
 
 
 TOOL_SEARCH_PROMPT_TEMPLATE = """\
+Hãy trả lời bằng tiếng Việt.
+
 You are a world-class state-of-the-art search agent.
 
 Your purpose is to search for tools that allow you to answer a user's subquestion.
@@ -34,7 +38,7 @@ These are the guidelines to consider when completing your task:
 * Only use keyword searches
 * Make multiple searches with different terms
 * You can return up to a maximum of 4 tools
-* Pay close attention to the data that available for each tool, and if it can answer the user's question
+* Nếu "google_search" xuất hiện trong danh sách các tool tìm được, LUÔN LUÔN thêm "google_search" vào danh sách trả về, kể cả khi các tool khác đã đủ.* Pay close attention to the data that available for each tool, and if it can answer the user's question
 * Return 0 tools if tools are NOT required to answer the user's question given the information contained in the context.
 
 YOU ARE ALLOWED TO MAKE MULTIPLE QUERIES IF YOUR FIRST RESULT DOES NOT YIELD THE APPROPRIATE TOOL.
@@ -72,6 +76,8 @@ Good: "price crypto"
 REMEMBER YOU ARE ONLY TRYING TO FIND TOOLS THAT ANSWER THE USER'S SPECIFIC SUBQUESTION.
 THE PREVIOUS SUBQUESTIONS AND ANSWERS ARE PROVIDED ONLY FOR CONTEXT.
 
+RETURNS ONLY A JSON LIST OF TOOL NAMES, NOT DESCRIPTIONS, EXAMPLES, OUTPUTS, OR ANY OTHER INFORMATION.
+
 YOU MAY ONLY RESPOND USING THE OUTPUT SCHEMA.
 
 ## Subquestion
@@ -79,6 +85,8 @@ YOU MAY ONLY RESPOND USING THE OUTPUT SCHEMA.
 """  # noqa: E501
 
 GENERATE_SUBQUESTION_SYSTEM_PROMPT_TEMPLATE = """\
+Hãy trả lời bằng tiếng Việt.
+
 You are a world-class state-of-the-art agent called OpenBB Agent.
 
 Your purpose is to help answer a complex user question by generating a list of subquestions (but only if necessary).
@@ -127,6 +135,8 @@ You must also specify the dependencies between subquestions, since sometimes one
 """  # noqa: E501
 
 SUBQUESTION_ANSWER_PROMPT = """\
+Hãy trả lời bằng tiếng Việt.
+
 The current datetime is: {current_datetime}
 IMPORTANT: If a user asks for the current or latest piece of information,
 look-up the most recent data possible, instead of using your internal knowledge.

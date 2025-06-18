@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from typing import Any, Callable
-
+import os
 from langchain.vectorstores import VectorStore
 from magentic import (
     AssistantMessage,
@@ -16,6 +16,11 @@ from magentic import (
     prompt,
     prompt_chain,
 )
+
+# if 'OPENAI_API_KEY' not in os.environ:
+#     os.environ['OPENAI_API_KEY'] = os.environ.get('GEMINI_API_KEY', 'dummy-key')
+
+from magentic.chat_model.litellm_chat_model import LitellmChatModel
 
 from openbb_agents.models import (
     AnsweredSubQuestion,
@@ -37,8 +42,10 @@ def generate_final_answer(
 ) -> str:
     @prompt(
         FINAL_RESPONSE_PROMPT_TEMPLATE,
-        model=OpenaiChatModel(model="gpt-4o", temperature=0.0),
-    )
+        model = LitellmChatModel(
+            "gemini-2.0-flash-exp",  # Updated to experimental version which may have better availability
+            # Add these parameters to help with rate limiting
+        ),      )
     def _final_answer(
         user_query: str, answered_subquestions: list[AnsweredSubQuestion]
     ) -> str:
@@ -55,8 +62,11 @@ async def agenerate_final_answer(
 ) -> str:
     @prompt(
         FINAL_RESPONSE_PROMPT_TEMPLATE,
-        model=OpenaiChatModel(model="gpt-4o", temperature=0.0),
-    )
+        model = LitellmChatModel(
+            "gemini-2.0-flash-exp",  # Updated to experimental version which may have better availability
+            # Add these parameters to help with rate limiting
+        ),  
+        )
     async def _final_answer(
         user_query: str, answered_subquestions: list[AnsweredSubQuestion]
     ) -> str:
@@ -81,7 +91,10 @@ def generate_subquestion_answer(
 
         @chatprompt(
             *messages,
-            model=OpenaiChatModel(model="gpt-4o", temperature=0.0),
+            model = LitellmChatModel(
+                "gemini-2.0-flash-exp",  # Updated to experimental version which may have better availability
+                # Add these parameters to help with rate limiting
+            ),  
             functions=tools,
         )
         def _answer_subquestion(
@@ -126,7 +139,9 @@ async def agenerate_subquestion_answer(
 
         @chatprompt(
             *messages,
-            model=OpenaiChatModel(model="gpt-4o", temperature=0.0),
+            model = LitellmChatModel(
+                "gemini-2.0-flash-exp",  # Updated to experimental version which may have better availability
+            ),            
             functions=tools,
         )
         async def _answer_subquestion(
@@ -160,8 +175,10 @@ async def agenerate_subquestion_answer(
 @chatprompt(
     SystemMessage(GENERATE_SUBQUESTION_SYSTEM_PROMPT_TEMPLATE),
     UserMessage("# User query\n{user_query}"),
-    model=OpenaiChatModel(model="gpt-4o", temperature=0.0),
-)
+    model = LitellmChatModel(
+        "gemini-2.0-flash-exp",  # Updated to experimental version which may have better availability
+    ),  
+    )
 def generate_subquestions_from_query(user_query: str) -> list[SubQuestion]:
     ...
 
@@ -169,8 +186,11 @@ def generate_subquestions_from_query(user_query: str) -> list[SubQuestion]:
 @chatprompt(
     SystemMessage(GENERATE_SUBQUESTION_SYSTEM_PROMPT_TEMPLATE),
     UserMessage("# User query\n{user_query}"),
-    model=OpenaiChatModel(model="gpt-4o", temperature=0.0),
-)
+    model = LitellmChatModel(
+        "gemini-2.0-flash-exp",  # Updated to experimental version which may have better availability
+        # Add these parameters to help with rate limiting
+    ),  
+    )
 async def agenerate_subquestions_from_query(user_query: str) -> list[SubQuestion]:
     ...
 
@@ -188,7 +208,10 @@ def search_tools(
 
     @prompt_chain(
         TOOL_SEARCH_PROMPT_TEMPLATE,
-        model=OpenaiChatModel(model="gpt-3.5-turbo", temperature=0.2),
+        model = LitellmChatModel(
+            "gemini-2.0-flash-exp",  # Updated to experimental version which may have better availability
+            # Add these parameters to help with rate limiting
+        ),         
         functions=[llm_query_tool_index],
     )
     def _search_tools(
@@ -216,7 +239,10 @@ async def asearch_tools(
 
     @prompt_chain(
         TOOL_SEARCH_PROMPT_TEMPLATE,
-        model=OpenaiChatModel(model="gpt-3.5-turbo", temperature=0.2),
+        model = LitellmChatModel(
+            "gemini-2.0-flash-exp",  # Updated to experimental version which may have better availability
+            # Add these parameters to help with rate limiting
+        ),      
         functions=[llm_query_tool_index],
     )
     async def _search_tools(

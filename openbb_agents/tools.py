@@ -8,7 +8,8 @@ from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.vectorstores import VectorStore
 from langchain_openai import OpenAIEmbeddings
 from openbb import obb
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 from .models import OpenBBFunctionDescription
 
@@ -53,14 +54,37 @@ def get_valid_list_of_providers() -> list[str]:
     return valid_providers
 
 
+# def get_valid_openbb_function_names() -> list[str]:
+#     valid_providers = get_valid_list_of_providers()
+#     valid_function_names = set()
+#     for provider in valid_providers:
+#         try:
+#             valid_function_names |= set(_get_openbb_coverage_providers()[provider])
+#         except KeyError:
+#             pass
+#     return sorted(list(valid_function_names))
+
 def get_valid_openbb_function_names() -> list[str]:
     valid_providers = get_valid_list_of_providers()
     valid_function_names = set()
+    openbb_coverage_providers = {}
+    try:
+        openbb_coverage_providers = _get_openbb_coverage_providers()
+    except Exception as e:
+        logger.error(f"Error retrieving OpenBB coverage providers: {e}")
+        # Depending on desired behavior, you might want to re-raise or return an empty list here.
+
     for provider in valid_providers:
-        try:
-            valid_function_names |= set(_get_openbb_coverage_providers()[provider])
-        except KeyError:
-            pass
+        if provider in openbb_coverage_providers:
+            try:
+                valid_function_names |= set(openbb_coverage_providers[provider])
+            except TypeError as e:
+                logger.error(f"Error processing functions for provider '{provider}': {e}")
+        else:
+            logger.warning(f"Provider '{provider}' not found in OpenBB coverage.")
+
+    valid_function_names = {name for name in valid_function_names if "." in name and not name.lower().startswith("output") and not name.lower().startswith("example")}
+    # logger.info(f"Valid OpenBB function names: {valid_function_names}")         
     return sorted(list(valid_function_names))
 
 
@@ -90,7 +114,8 @@ def _get_flat_properties_from_pydantic_model_as_str(model: Any) -> str:
     output_str = ""
     schema_properties = model.schema()["properties"]
     for name, props in schema_properties.items():
-        output_str += f"{name}: {props['description']}\n"
+        description = props.get("description", "")
+        output_str += f"{name}: {description}\n"
     return output_str
 
 
@@ -108,23 +133,68 @@ def make_vector_index_description(
     return output_str
 
 
+# def build_vector_index_from_openbb_function_descriptions(
+#     openbb_function_descriptions: list[OpenBBFunctionDescription],
+# ) -> VectorStore:
+#     documents = []
+#     for function_description in openbb_function_descriptions:
+#         documents.append(
+#             Document(
+#                 page_content=make_vector_index_description(function_description),
+#                 metadata={
+#                     "callable": function_description.callable,
+#                     "tool_name": function_description.name,
+#                 },
+#             )
+#         )
+#     vector_store = FAISS.from_documents(documents, embedding=OpenAIEmbeddings())
+#     return vector_store
+
+import os
 def build_vector_index_from_openbb_function_descriptions(
     openbb_function_descriptions: list[OpenBBFunctionDescription],
 ) -> VectorStore:
-    documents = []
-    for function_description in openbb_function_descriptions:
-        documents.append(
-            Document(
-                page_content=make_vector_index_description(function_description),
-                metadata={
-                    "callable": function_description.callable,
-                    "tool_name": function_description.name,
-                },
-            )
+    """
+    Build a vector index from OpenBB function descriptions.
+    
+    Args:
+        openbb_function_descriptions: List of OpenBBFunctionDescription objects containing function descriptions.
+        
+    Returns:
+        VectorStore: FAISS vector store with embedded documents.
+    """
+    # Convert OpenBBFunctionDescription objects to Document objects
+    documents = [
+        Document(
+            page_content=make_vector_index_description(description),
+            metadata={
+                "callable": description.callable,
+                "tool_name": description.name,
+            },
         )
-    vector_store = FAISS.from_documents(documents, embedding=OpenAIEmbeddings())
-    return vector_store
+        for description in openbb_function_descriptions
+    ]
 
+    if not documents:
+        raise ValueError("No documents to build vector index from.")
+
+    google_api_key = os.environ.get("GOOGLE_API_KEY")
+    if google_api_key is not None:
+        if isinstance(google_api_key, SecretStr):
+            google_api_key = google_api_key.get_secret_value()
+        google_api_key = str(google_api_key)  # Ensure it's a string
+    else:
+        raise ValueError("GOOGLE_API_KEY environment variable is not set or is empty")        
+
+    # Use Google's embedding model instead of OpenAI
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/embedding-001",
+        google_api_key=google_api_key
+    )
+    
+    vector_store = FAISS.from_documents(documents, embedding=embeddings)
+    logger.info("Vector store length: %d", len(vector_store.docstore._dict))
+    return vector_store
 
 def build_openbb_tool_vector_index() -> VectorStore:
     logger.info("Building OpenBB tool vector index...")
